@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://dn4altfvkrygt"]
+[gd_scene load_steps=3 format=3 uid="uid://dn4altfvkrygt"]
 
 [ext_resource type="Script" uid="uid://copwuke41tg61" path="res://gridManager.gd" id="1_1jydy"]
+[ext_resource type="PackedScene" uid="uid://dao1g460lobac" path="res://tileLabel.tscn" id="2_7nxku"]
 
 [node name="Node2D" type="Node2D"]
 script = ExtResource("1_1jydy")
+tile_scene = ExtResource("2_7nxku")

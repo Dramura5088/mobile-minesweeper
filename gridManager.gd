@@ -1,39 +1,71 @@
 extends Node2D
 
+# ENABLE FOR DEBUG DRAWS & ETC
+@export var debug:bool = false
+
+# SETTINGS
 @export var gridXSize:  int = 10
 @export var gridYSize:  int = 10
 @export var bufferSize: int = 10
 @export var bombs: int = 10
-var currentBombs: int = 0
 
-@export var seed:int = 42
+# LINE WIDTH
+@export var gridLinesWidth:int = 5
+@export var lockedGridLinesWidth:int = 10
+
+# COLORS
+@export var backgroundColor:Color 	= Color.DIM_GRAY
+@export var emptyTileColor:Color 	= Color.WEB_GRAY
+@export var gridColor:Color 		= Color.BLACK
+@export var lockedGridColor:Color 	= Color.DARK_RED
+
+# FOR UI
+var currentBombs: int = 0
+var viewPort:Viewport
+
+# RANDOM GENERATION
+@export var gameSeed:int = 42
 var rng = RandomNumberGenerator.new()
 
+# PRESET
 @export var tile_scene: PackedScene
 
+# UI SCALING
 var screen_size
 var screen_sizeScale:Vector2
 
+# DRAG
+var isDragging:bool = false
+var originalPos:Vector2
+var dragStart:Vector2
+@export var dragThreshold:float = 5
+var positionOffset:Vector2 = Vector2.ZERO
+
+# GRIDS
 var grid:Dictionary
+var lockedGrid:Dictionary
+
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	print("Ready")
-	screen_size = get_viewport().size
+	viewPort = get_viewport()
+	originalPos = self.position
+	screen_size = viewPort.size
 	
-	var x_scaled = (screen_size.x-bufferSize) / gridXSize
-	var y_scaled = (screen_size.y-bufferSize) / gridYSize
-	
-	rng.seed = seed
+	rng.seed = gameSeed
 	currentBombs = 0
 	
-	screen_sizeScale = Vector2(x_scaled, y_scaled)
+	screen_sizeScale = getScreenSizeScale()
 	grid = {}
+	lockedGrid = {}
 	# TILES
 	for x in range(gridXSize):
 		for y in range(gridYSize):
 			var pos:Vector2i = Vector2i(x,y)
-			var gridObject = Tile.new(pos, false)
+			var worldPos:Vector2 = gridPosToWorldPos(pos)
+			var gridObject = Tile.new(pos, worldPos, screen_sizeScale, false, tile_scene, self)
 			grid[pos] = gridObject
 	
 	# BOMB
@@ -41,37 +73,119 @@ func _ready() -> void:
 		if rng.randi_range(0, gridXSize * gridYSize) <= bombs && bombs >= currentBombs:
 			grid[pos].isBomb = true
 			currentBombs += 1
+			
+	for pos in grid.keys():
+		grid[pos].nearbyBombs(grid, lockedGrid, false)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
+@warning_ignore("unused_parameter")
 func _process(delta: float) -> void:
-	#print("Process")
-	#queue_redraw()
-	pass
+	if Input.is_action_just_pressed("LeftClick"):
+		dragStart = viewPort.get_mouse_position()
+		isDragging = true
+	if Input.is_action_just_released("LeftClick"):
+		var dragDistance = dragStart.distance_to(viewPort.get_mouse_position())
+		isDragging = false
+		if dragDistance > dragThreshold: # DRAG
+			queue_redraw()
+		else: # NOT DRAG
+			onTilePressLeftClick()
+	
+	if Input.is_action_just_pressed("RightClick"):
+		dragStart = viewPort.get_mouse_position()
+		isDragging = true
+	if Input.is_action_just_released("RightClick"):
+		var dragDistance = dragStart.distance_to(viewPort.get_mouse_position())
+		isDragging = false
+		if dragDistance > dragThreshold: # DRAG
+			queue_redraw()
+		else: # NOT DRAG
+			onTilePressRightClick()
+
+	if isDragging:
+		var movementDifference:Vector2 = dragStart - viewPort.get_mouse_position() 
+		positionOffset += movementDifference * delta
+		self.position = originalPos + positionOffset
+		
+func onTilePressLeftClick():
+	var mousePos: Vector2 = viewPort.get_mouse_position()
+	var gridPos = worldPosToGridPos(mousePos)
+	if gridPos in grid && gridPos not in lockedGrid:
+		if grid[gridPos].label == null:
+			grid[gridPos].createLabel()
+			grid[gridPos].nearbyBombs(grid, lockedGrid)
+		else:
+			grid[gridPos].nearbyBombs(grid, lockedGrid)
+		queue_redraw()
+
+func onTilePressRightClick():
+	var mousePos: Vector2 = viewPort.get_mouse_position()
+	var gridPos = worldPosToGridPos(mousePos)
+	if gridPos in grid && grid[gridPos].label == null:
+		if gridPos not in lockedGrid:
+			lockedGrid[gridPos] = grid[gridPos]
+		else:
+			lockedGrid.erase(gridPos)
+		queue_redraw()
 
 func _draw():
 	drawGrid()
 
 func drawGrid():
-	#print("Draw")
-	for x in range(gridXSize):
-		for y in range(gridYSize):
-			var x_s = x * screen_sizeScale.x + bufferSize/2
-			var y_s = y * screen_sizeScale.y + bufferSize/2
-			
-			var bottom_left  = Vector2(x_s,y_s)
-			var top_left	 = bottom_left + Vector2(0,screen_sizeScale.y)
-			var bottom_right = bottom_left + Vector2(screen_sizeScale.x,0)
-			var top_right	 = bottom_right + Vector2(0,screen_sizeScale.y)
-			
-			var centre		 = bottom_left + screen_sizeScale/2
-			
-			var col = Color.AZURE
-			draw_line(bottom_left,top_left,col, 1) # Left Line
-			draw_line(bottom_left,bottom_right,col, 1) # Bottom Line
-			
-			if x == gridXSize -1 || y == gridYSize -1:
-				draw_line(top_left,top_right, col, 1) # Top Line
-				draw_line(top_right, bottom_right, col, 1 ) # Right Line
-			
-			if grid[Vector2i(x,y)].isBomb:
-				draw_circle(centre,bufferSize,Color.RED)
+	draw_line(Vector2(0,screen_size.y/2),Vector2(screen_size.x,screen_size.y/2), backgroundColor, screen_size.y)
+	
+	for gridPos in grid:
+		var worldPos: Vector2 = gridPosToWorldPos(Vector2(gridPos.x,gridPos.y))
+		
+		var bottom_left  = Vector2(worldPos.x,worldPos.y)
+		var top_left	 = bottom_left + Vector2(0,screen_sizeScale.y)
+		var bottom_right = bottom_left + Vector2(screen_sizeScale.x,0)
+		var top_right	 = bottom_right + Vector2(0,screen_sizeScale.y)
+		
+		var centre		 = bottom_left + screen_sizeScale/2
+		
+		draw_line(bottom_left,top_left, gridColor, gridLinesWidth) # Left Line
+		draw_line(bottom_left,bottom_right,gridColor, gridLinesWidth) # Bottom Line
+		
+		if gridPos.x == gridXSize -1 || gridPos.y == gridYSize -1:
+			draw_line(top_left,top_right, gridColor, gridLinesWidth) # Top Line
+			draw_line(top_right, bottom_right, gridColor, gridLinesWidth) # Right Line
+		
+		if grid[gridPos].label == null:
+			var offset: Vector2 = Vector2(0,screen_sizeScale.y/2)
+			draw_line(bottom_left + offset, bottom_right + offset, emptyTileColor, offset.y*2)
+		
+		# Debug draw bomb location.
+		if grid[gridPos].isBomb && debug:
+			draw_circle(centre,bufferSize,Color.RED)
+	for gridPos in lockedGrid:
+		var worldPos: Vector2 = gridPosToWorldPos(Vector2(gridPos.x,gridPos.y))
+		
+		var bottom_left  = Vector2(worldPos.x,worldPos.y)
+		var top_left	 = bottom_left + Vector2(0,screen_sizeScale.y)
+		var bottom_right = bottom_left + Vector2(screen_sizeScale.x,0)
+		var top_right	 = bottom_right + Vector2(0,screen_sizeScale.y)
+		
+		var centre		 = bottom_left + screen_sizeScale/2
+
+		draw_line(top_left, bottom_right, lockedGridColor, lockedGridLinesWidth)
+		draw_line(bottom_left, top_right, lockedGridColor, lockedGridLinesWidth)
+	
+func gridPosToWorldPos(gridPos: Vector2i) -> Vector2:
+	var _scale:Vector2 = getScreenSizeScale()
+	
+	var x:float = gridPos.x * _scale.x + bufferSize/2.0
+	var y:float = gridPos.y * _scale.y + bufferSize/2.0
+	
+	return Vector2(x,y)
+	
+func worldPosToGridPos(worldPos: Vector2) -> Vector2i:
+	var _scale:Vector2 = getScreenSizeScale()
+
+	var x:int = int(int(worldPos.x - positionOffset.x) / _scale.x)
+	var y:int = int(int(worldPos.y - positionOffset.y) / _scale.y)
+	
+	return Vector2(x,y)
+	
+func getScreenSizeScale() -> Vector2:
+	return Vector2((screen_size.x-bufferSize) / gridXSize,(screen_size.y-bufferSize) / gridYSize)
