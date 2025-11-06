@@ -28,7 +28,8 @@ var viewPort:Viewport
 var rng = RandomNumberGenerator.new()
 
 # PRESET
-@export var tile_scene: PackedScene
+@export var tileLabel_Scene: PackedScene
+@export var tileMesh_Scene: PackedScene
 
 # UI SCALING
 var screen_size
@@ -65,7 +66,7 @@ func _ready() -> void:
 		for y in range(gridYSize):
 			var pos:Vector2i = Vector2i(x,y)
 			var worldPos:Vector2 = gridPosToWorldPos(pos)
-			var gridObject = Tile.new(pos, worldPos, screen_sizeScale, false, tile_scene, self)
+			var gridObject = Tile.new(pos, worldPos, screen_sizeScale, false, tileMesh_Scene,tileLabel_Scene, self)
 			grid[pos] = gridObject
 	
 	# BOMB
@@ -129,7 +130,10 @@ func onTilePressRightClick():
 		queue_redraw()
 
 func _draw():
-	drawGrid()
+	#drawGrid()
+	for pos in grid:
+		grid[pos].createCustomMesh()
+	queue_redraw()
 
 func drawGrid():
 	draw_line(Vector2(0,screen_size.y/2),Vector2(screen_size.x,screen_size.y/2), backgroundColor, screen_size.y)

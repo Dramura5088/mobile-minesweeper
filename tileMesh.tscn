@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://cjydu4b1ci8s"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_aqvye"]
+light_mode = 1
+
+[node name="TileMesh" type="MeshInstance2D"]
+material = SubResource("CanvasItemMaterial_aqvye")

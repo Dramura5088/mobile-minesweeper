@@ -21,3 +21,5 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 script = SubResource("GDScript_1h3lw")
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="."]

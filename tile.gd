@@ -7,11 +7,15 @@ var worldPosition: Vector2
 var tileScale:Vector2
 
 var isBomb: bool
+
 var labelPrefab: PackedScene
 var label: Label
 
+var meshPrefab: PackedScene
+var mesh: MeshInstance2D
+
 @warning_ignore("shadowed_variable")
-func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isBomb: bool, labelPrefab:PackedScene, parent:Node2D):
+func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isBomb: bool, meshPrefab: PackedScene,labelPrefab:PackedScene, parent:Node2D):
 	self.parent = parent
 	
 	self.gridPosition = gridPosition
@@ -22,6 +26,11 @@ func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isB
 	
 	self.labelPrefab = labelPrefab
 	self.label = null
+	
+	self.meshPrefab = meshPrefab
+	self.mesh = null
+	
+	
 
 func nearbyBombs(grid:Dictionary, lockedGrid:Dictionary ,unveilIfNoBombs:bool = true) -> int:
 	var bombs:int = 0
@@ -62,4 +71,60 @@ func createLabel():
 	
 	label.size = tileScale
 	label.position = worldPosition
-	label.name = "X:" + str(gridPosition.x) + " Y:" + str(gridPosition.y)
+	label.name += " X:" + str(gridPosition.x) + " Y:" + str(gridPosition.y)
+	self.label = label
+
+func createMesh():
+	mesh = meshPrefab.instantiate()
+	parent.add_child(mesh)
+	mesh.position = worldPosition
+	mesh.name += " X:" + str(gridPosition.x) + " Y:" + str(gridPosition.y)
+	self.mesh = mesh
+
+#@warning_ignore("unused_parameter")
+#func createCustomMesh(grid:Dictionary, lockedGrid:Dictionary):
+	#if self.mesh == null:
+		#createMesh()
+	#
+	#var a_mesh = ArrayMesh.new()
+	#var verticies := PackedVector3Array([
+		#Vector3(0,0,0) * tileScale.x,
+		#Vector3(1,0,0) * tileScale.x,
+		#Vector3(0,-1,0) * tileScale.x,
+	#])
+	#
+	#var indicies := PackedInt32Array([
+		#0,1,2
+	#])
+#
+	#var array = []
+	#array.resize(Mesh.ARRAY_MAX)
+	#array[Mesh.ARRAY_VERTEX] = verticies
+	#array[Mesh.ARRAY_INDEX] = indicies
+	#a_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, array)
+	#self.mesh.mesh = a_mesh
+	#print(a_mesh)
+
+func createCustomMesh():
+	
+	if self.mesh == null:
+		createMesh()
+	
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	
+	st.add_vertex(Vector3(0,0,0))
+	st.add_vertex(Vector3(1,0,0))
+	st.add_vertex(Vector3(0,1,0))
+	
+	
+	var mesh = st.commit()
+	self.mesh.mesh=mesh
+
+func createQuad(topLeft:Vector3, topRight:Vector3, bottomLeft:Vector3, bottomRight:Vector3):
+	pass
+	
+func bezierCurvePoint(start:Vector3, mid:Vector3, end:Vector3, t:float):
+	pass
+	
+	
