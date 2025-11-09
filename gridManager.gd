@@ -159,6 +159,7 @@ func drawGrid():
 			var offset: Vector2 = Vector2(0,screen_sizeScale.y/2)
 			draw_line(bottom_left + offset, bottom_right + offset, emptyTileColor, offset.y*2)
 		
+		draw_circle(gridPos,.5,Color.ALICE_BLUE)
 		# Debug draw bomb location.
 		if grid[gridPos].isBomb && debug:
 			draw_circle(centre,bufferSize,Color.RED)

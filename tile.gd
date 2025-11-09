@@ -14,6 +14,7 @@ var label: Label
 var meshPrefab: PackedScene
 var mesh: MeshInstance2D
 
+
 @warning_ignore("shadowed_variable")
 func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isBomb: bool, meshPrefab: PackedScene,labelPrefab:PackedScene, parent:Node2D):
 	self.parent = parent
@@ -30,7 +31,12 @@ func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isB
 	self.meshPrefab = meshPrefab
 	self.mesh = null
 	
-	
+	# MESH GEN SETUP
+	#self.meshTopLeft = Vector2(0,0)
+	#self.meshTopRight = Vector2(self.tileScale.x,0)
+	#self.meshBottomLeft = Vector2(0,-self.tileScale.y)
+	#self.meshBottomRight = Vector2(self.tileScale.x,-self.tileScale.y)
+
 
 func nearbyBombs(grid:Dictionary, lockedGrid:Dictionary ,unveilIfNoBombs:bool = true) -> int:
 	var bombs:int = 0
@@ -81,50 +87,82 @@ func createMesh():
 	mesh.name += " X:" + str(gridPosition.x) + " Y:" + str(gridPosition.y)
 	self.mesh = mesh
 
-#@warning_ignore("unused_parameter")
-#func createCustomMesh(grid:Dictionary, lockedGrid:Dictionary):
-	#if self.mesh == null:
-		#createMesh()
-	#
-	#var a_mesh = ArrayMesh.new()
-	#var verticies := PackedVector3Array([
-		#Vector3(0,0,0) * tileScale.x,
-		#Vector3(1,0,0) * tileScale.x,
-		#Vector3(0,-1,0) * tileScale.x,
-	#])
-	#
-	#var indicies := PackedInt32Array([
-		#0,1,2
-	#])
-#
-	#var array = []
-	#array.resize(Mesh.ARRAY_MAX)
-	#array[Mesh.ARRAY_VERTEX] = verticies
-	#array[Mesh.ARRAY_INDEX] = indicies
-	#a_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, array)
-	#self.mesh.mesh = a_mesh
-	#print(a_mesh)
-
 func createCustomMesh():
-	
 	if self.mesh == null:
 		createMesh()
 	
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
-	st.add_vertex(Vector3(0,0,0))
-	st.add_vertex(Vector3(1,0,0))
-	st.add_vertex(Vector3(0,1,0))
-	
-	
-	var mesh = st.commit()
-	self.mesh.mesh=mesh
+	# MESH GEN
+	var meshTopLeft:Vector2 		= Vector2(0,tileScale.y)
+	var meshTopRight:Vector2 		= Vector2(tileScale.x,tileScale.y)
+	var meshBottomLeft:Vector2 		= Vector2(0,0)
+	var meshBottomRight:Vector2 	= Vector2(tileScale.x, 0)
 
-func createQuad(topLeft:Vector3, topRight:Vector3, bottomLeft:Vector3, bottomRight:Vector3):
-	pass
+	var precision:int = 10
 	
-func bezierCurvePoint(start:Vector3, mid:Vector3, end:Vector3, t:float):
-	pass
+	var center 						= tileScale/2.0 
+	var meshMiddleLeft:Vector2 		= Vector2(0.0,tileScale.y/2.0)
+	var meshMiddleRight:Vector2 	= Vector2(tileScale.x, tileScale.y/2.0)
+	var meshMiddleTop:Vector2 		= Vector2(tileScale.x/2.0,tileScale.y)
+	var meshMiddleBottom:Vector2 	= Vector2(tileScale.x/2.0,0)
 	
+	# TOP LEFT
+	for vertex in createMeshCurvedCorner(10.0, meshTopLeft, meshMiddleTop, meshMiddleLeft, center, true, false, false, false):
+		st.add_vertex(vertex)
 	
+	# TOP RIGHT
+	for vertex in createMeshCurvedCorner(10.0, meshMiddleTop, meshTopRight, center, meshMiddleRight, false, true, false, false):
+		st.add_vertex(vertex)
+	
+	# BOT LEFT
+	for vertex in createMeshCurvedCorner(10.0, meshMiddleLeft, center, meshBottomLeft, meshMiddleBottom, false, false, true, false):
+		st.add_vertex(vertex)
+	
+	# BOT RIGHT
+	for vertex in createMeshCurvedCorner(10.0, center, meshMiddleRight, meshMiddleBottom, meshBottomRight, false, false, false, true):
+		st.add_vertex(vertex)
+	
+	self.mesh.mesh=st.commit()
+
+func createMeshCurvedCorner(precision:int, topLeft:Vector2, topRight:Vector2, bottomLeft:Vector2, bottomRight:Vector2, curvedTL:bool, curvedTR:bool, curvedBL:bool, curvedBR:bool) -> Array:
+	var verticies:Array = []
+	for i in range(precision):
+		var i_next_normalized:float = float(i+1) / float(precision)
+		var i_normalized:float = float(i) / float(precision)
+		
+		var y_top 		= tileScale.y/2.0 * i_next_normalized
+		var y_bottom 	= tileScale.y/2.0 * i_normalized
+		
+		var TL:Vector2 = bottomLeft + Vector2(0, y_top)
+		var TR:Vector2 = bottomLeft + Vector2(tileScale.y/2, y_top)
+		var BL:Vector2 = bottomLeft + Vector2(0, y_bottom)
+		var BR:Vector2 = bottomLeft + Vector2(tileScale.x/2, y_bottom)
+		
+		if curvedTL:
+			TL = bezierCurvePoint(bottomLeft, topLeft, topRight, i_next_normalized)
+			BL = bezierCurvePoint(bottomLeft, topLeft, topRight, i_normalized)
+		elif curvedTR:
+			TR = bezierCurvePoint(bottomRight, topRight, topLeft, i_next_normalized)
+			BR = bezierCurvePoint(bottomRight, topRight, topLeft, i_normalized)
+		elif curvedBL:
+			TL = bezierCurvePoint(bottomRight, bottomLeft, topLeft, i_next_normalized)
+			BL = bezierCurvePoint(bottomRight, bottomLeft, topLeft, i_normalized)
+		elif curvedBR:
+			TR = bezierCurvePoint(bottomLeft, bottomRight, topRight, i_next_normalized)
+			BR = bezierCurvePoint(bottomLeft, bottomRight, topRight, i_normalized)
+		
+		for vertex in createQuadList(TL, TR, BL, BR):
+			verticies.append(Vector3(vertex.x,vertex.y,0))
+	
+	return verticies
+
+func createQuadList(topLeft:Vector2, topRight:Vector2, bottomLeft:Vector2, bottomRight:Vector2) -> Array:
+	return [ topLeft, topRight, bottomLeft, topRight, bottomRight, bottomLeft]
+	
+func bezierCurvePoint(start:Vector2, mid:Vector2, end:Vector2, midTime:float) -> Vector2:
+	var t:float = midTime
+	var rt:float = 1.0 - t
+	# b(t) = (1-t)^2 * b0 + 2t(1-t)b1 + t^2 * b2
+	return (rt * rt * start) + (2 * t * rt * mid) + (t * t * end);
