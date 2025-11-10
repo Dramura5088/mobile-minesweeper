@@ -65,11 +65,15 @@ func unveilNearbyTiles(grid:Dictionary, lockedGrid:Dictionary, unveilIfNoBombs:b
 				var pos = Vector2i(x,y)
 				if pos in grid && grid[pos].label == null && pos not in lockedGrid:
 					grid[pos].createLabel()
+					grid[pos].generateNewMesh(grid)
 					grid[pos].nearbyBombs(grid, lockedGrid, unveilIfNoBombs)
 
 func setLabel(text:String):
 	if (label == null): return
-	label.text = text
+	if not isBomb:
+		label.text = text
+	else:
+		label.text = "BOMB"
 
 func createLabel():
 	label = labelPrefab.instantiate()
@@ -87,7 +91,26 @@ func createMesh():
 	mesh.name += " X:" + str(gridPosition.x) + " Y:" + str(gridPosition.y)
 	self.mesh = mesh
 
-func createCustomMesh():
+func generateNewMesh(grid:Dictionary):
+	var checkPosition = func checkPosition(offset:Vector2i) -> bool:
+		if (gridPosition+offset) not in grid:
+			return false
+		return true#grid[(gridPosition+offset)].label == null
+	
+	
+	var left:bool 	= checkPosition.call(Vector2i.LEFT)
+	var right:bool 	= checkPosition.call(Vector2i.RIGHT)
+	var up:bool 	= checkPosition.call(Vector2i.DOWN)
+	var down:bool 	= checkPosition.call(Vector2i.UP) # DUNNO
+	
+	var curvedTL:bool = not left and not up
+	var curvedTR:bool = not right and not up
+	var curvedBL:bool = not left and not down
+	var curvedBR:bool = not right and not down
+	
+	createCustomMesh(curvedTL, curvedTR, curvedBL, curvedBR)
+
+func createCustomMesh(curvedTL:bool, curvedTR:bool, curvedBL:bool, curvedBR:bool):
 	if self.mesh == null:
 		createMesh()
 	
@@ -109,19 +132,19 @@ func createCustomMesh():
 	var meshMiddleBottom:Vector2 	= Vector2(tileScale.x/2.0,0)
 	
 	# TOP LEFT
-	for vertex in createMeshCurvedCorner(10.0, meshTopLeft, meshMiddleTop, meshMiddleLeft, center, true, false, false, false):
+	for vertex in createMeshCurvedCorner(precision, meshTopLeft, meshMiddleTop, meshMiddleLeft, center, curvedTL, false, false, false):
 		st.add_vertex(vertex)
 	
 	# TOP RIGHT
-	for vertex in createMeshCurvedCorner(10.0, meshMiddleTop, meshTopRight, center, meshMiddleRight, false, true, false, false):
+	for vertex in createMeshCurvedCorner(precision, meshMiddleTop, meshTopRight, center, meshMiddleRight, false, curvedTR, false, false):
 		st.add_vertex(vertex)
 	
 	# BOT LEFT
-	for vertex in createMeshCurvedCorner(10.0, meshMiddleLeft, center, meshBottomLeft, meshMiddleBottom, false, false, true, false):
+	for vertex in createMeshCurvedCorner(precision, meshMiddleLeft, center, meshBottomLeft, meshMiddleBottom, false, false, curvedBL, false):
 		st.add_vertex(vertex)
 	
 	# BOT RIGHT
-	for vertex in createMeshCurvedCorner(10.0, center, meshMiddleRight, meshMiddleBottom, meshBottomRight, false, false, false, true):
+	for vertex in createMeshCurvedCorner(precision, center, meshMiddleRight, meshMiddleBottom, meshBottomRight, false, false, false, curvedBR):
 		st.add_vertex(vertex)
 	
 	self.mesh.mesh=st.commit()

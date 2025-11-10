@@ -46,6 +46,10 @@ var positionOffset:Vector2 = Vector2.ZERO
 var grid:Dictionary
 var lockedGrid:Dictionary
 
+# MESH GEN
+var color1:Color = Color.DIM_GRAY
+var color2:Color = Color.WHITE
+var color3:Color = Color.WEB_GRAY
 
 
 # Called when the node enters the scene tree for the first time.
@@ -131,8 +135,18 @@ func onTilePressRightClick():
 
 func _draw():
 	#drawGrid()
+	var gridWithLabels:Dictionary = gridWithLabels()
+	var gridWithoutLabels:Dictionary = gridWithLabels(true)
 	for pos in grid:
-		grid[pos].createCustomMesh()
+		if grid[pos].label != null:
+			grid[pos].generateNewMesh(gridWithLabels)
+			grid[pos].mesh.modulate = color3
+		elif pos not in lockedGrid:
+			grid[pos].generateNewMesh(gridWithoutLabels)
+			grid[pos].mesh.modulate = color1
+		else:
+			grid[pos].generateNewMesh(lockedGrid)
+			grid[pos].mesh.modulate = color2
 	queue_redraw()
 
 func drawGrid():
@@ -175,7 +189,19 @@ func drawGrid():
 
 		draw_line(top_left, bottom_right, lockedGridColor, lockedGridLinesWidth)
 		draw_line(bottom_left, top_right, lockedGridColor, lockedGridLinesWidth)
-	
+
+func gridWithLabels(inverse:bool = false)->Dictionary:
+	var grid_new = {}
+	for pos in grid:
+		if pos in lockedGrid:
+			continue
+		if grid[pos].label != null and not inverse:
+			grid_new[pos] = grid[pos]
+		elif grid[pos].label == null and inverse:
+			grid_new[pos] = grid[pos]
+	return grid_new
+
+
 func gridPosToWorldPos(gridPos: Vector2i) -> Vector2:
 	var _scale:Vector2 = getScreenSizeScale()
 	
