@@ -103,14 +103,24 @@ func generateNewMesh(grid:Dictionary):
 	var up:bool 	= checkPosition.call(Vector2i.DOWN)
 	var down:bool 	= checkPosition.call(Vector2i.UP) # DUNNO
 	
+	var topLeft:bool = checkPosition.call(Vector2i(-1,1))
+	var topRight:bool= checkPosition.call(Vector2i(1,1))
+	var bottomLeft:bool = checkPosition.call(Vector2i(-1,-1))
+	var bottomRight:bool = checkPosition.call(Vector2i(1,-1))
+	
 	var curvedTL:bool = not left and not up
 	var curvedTR:bool = not right and not up
 	var curvedBL:bool = not left and not down
 	var curvedBR:bool = not right and not down
 	
-	createCustomMesh(curvedTL, curvedTR, curvedBL, curvedBR)
+	var cornerTL:bool = left and up and not topLeft
+	var cornerTR:bool = right and up and not topRight
+	var cornerBL:bool = left and down and not bottomLeft
+	var cornerBR:bool = right and down and not bottomRight
+	
+	createCustomMesh(curvedTL, curvedTR, curvedBL, curvedBR, cornerTL, cornerTR, cornerBL, cornerBR)
 
-func createCustomMesh(curvedTL:bool, curvedTR:bool, curvedBL:bool, curvedBR:bool):
+func createCustomMesh(curvedTL:bool, curvedTR:bool, curvedBL:bool, curvedBR:bool, cornerTL:bool, cornerTR:bool, cornerBL:bool, cornerBR:bool):
 	if self.mesh == null:
 		createMesh()
 	
@@ -147,7 +157,44 @@ func createCustomMesh(curvedTL:bool, curvedTR:bool, curvedBL:bool, curvedBR:bool
 	for vertex in createMeshCurvedCorner(precision, center, meshMiddleRight, meshMiddleBottom, meshBottomRight, false, false, false, curvedBR):
 		st.add_vertex(vertex)
 	
+	if cornerTL:
+		for vertex in createCorner(precision,meshTopLeft,meshTopRight,meshBottomLeft,meshBottomRight,cornerTL,false,false,false):
+			st.add_vertex(vertex)
+	
+	if cornerTR:
+		for vertex in createCorner(precision, meshTopLeft,meshTopRight,meshBottomLeft,meshBottomRight,false,cornerTR,false,false):
+			st.add_vertex(vertex)
+	
+	if cornerBL:
+		for vertex in createCorner(precision, meshTopLeft,meshTopRight,meshBottomLeft,meshBottomRight,false,false,cornerBL,false):
+			st.add_vertex(vertex)
+	
+	if cornerBR:
+		for vertex in createCorner(precision, meshTopLeft,meshTopRight,meshBottomLeft,meshBottomRight,false,false,false, cornerBR):
+			st.add_vertex(vertex)
+	
 	self.mesh.mesh=st.commit()
+
+func createCorner(precision:int,meshTopLeft:Vector2, meshTopRight:Vector2, meshBottomLeft:Vector2, meshBottomRight:Vector2, cornerTL:bool, cornerTR:bool, cornerBL:bool, cornerBR:bool) -> Array:
+	var verticies:Array = []
+	
+	if cornerTL:
+		for vertex in createMeshCurvedCorner(precision,meshTopLeft,meshTopLeft+Vector2(0,tileScale.y/2),meshTopLeft+Vector2(-tileScale.x/2,0),meshTopLeft, cornerTL,false,false,false):
+			verticies.append(vertex)
+	
+	if cornerTR:
+		for vertex in createMeshCurvedCorner(precision,meshTopRight+Vector2(0,tileScale.y/2),meshTopRight,meshTopRight,meshTopRight+Vector2(tileScale.x/2,0),false,cornerTR,false,false):
+			verticies.append(vertex)
+	
+	if cornerBL:
+		for vertex in createMeshCurvedCorner(precision,meshBottomLeft+Vector2(-tileScale.x/2,0),meshBottomLeft,meshBottomLeft,meshBottomLeft+Vector2(0,-tileScale.y/2),false,false,cornerBL,false):
+			verticies.append(vertex)
+	
+	if cornerBR:
+		for vertex in createMeshCurvedCorner(precision,meshBottomRight,meshBottomRight+Vector2(tileScale.x/2,0), meshBottomRight+Vector2(0,-tileScale.y/2), meshBottomRight,false,false,false,cornerBR):
+			verticies.append(vertex)
+	
+	return verticies
 
 func createMeshCurvedCorner(precision:int, topLeft:Vector2, topRight:Vector2, bottomLeft:Vector2, bottomRight:Vector2, curvedTL:bool, curvedTR:bool, curvedBL:bool, curvedBR:bool) -> Array:
 	var verticies:Array = []
