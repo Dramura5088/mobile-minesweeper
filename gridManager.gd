@@ -8,6 +8,7 @@ extends Node2D
 @export var gridYSize:  int = 10
 @export var bufferSize: int = 10
 @export var bombs: int = 10
+@export var dragStrength: float = 2.5
 
 # LINE WIDTH
 @export var gridLinesWidth:int = 5
@@ -108,7 +109,7 @@ func _process(delta: float) -> void:
 
 	if isDragging:
 		var movementDifference:Vector2 = dragStart - viewPort.get_mouse_position() 
-		positionOffset += movementDifference * delta
+		positionOffset += movementDifference * delta * dragStrength
 		self.position = originalPos + positionOffset
 		
 func onTilePressLeftClick():

@@ -14,7 +14,6 @@ var label: Label
 var meshPrefab: PackedScene
 var mesh: MeshInstance2D
 
-
 @warning_ignore("shadowed_variable")
 func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isBomb: bool, meshPrefab: PackedScene,labelPrefab:PackedScene, parent:Node2D):
 	self.parent = parent
@@ -36,7 +35,6 @@ func _init(gridPosition: Vector2i, worldPosition:Vector2, tileScale:Vector2, isB
 	#self.meshTopRight = Vector2(self.tileScale.x,0)
 	#self.meshBottomLeft = Vector2(0,-self.tileScale.y)
 	#self.meshBottomRight = Vector2(self.tileScale.x,-self.tileScale.y)
-
 
 func nearbyBombs(grid:Dictionary, lockedGrid:Dictionary ,unveilIfNoBombs:bool = true) -> int:
 	var bombs:int = 0
@@ -230,7 +228,7 @@ func createMeshCurvedCorner(precision:int, topLeft:Vector2, topRight:Vector2, bo
 
 func createQuadList(topLeft:Vector2, topRight:Vector2, bottomLeft:Vector2, bottomRight:Vector2) -> Array:
 	return [ topLeft, topRight, bottomLeft, topRight, bottomRight, bottomLeft]
-	
+
 func bezierCurvePoint(start:Vector2, mid:Vector2, end:Vector2, midTime:float) -> Vector2:
 	var t:float = midTime
 	var rt:float = 1.0 - t
