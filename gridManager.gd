@@ -9,6 +9,9 @@ extends Node2D
 @export var bufferSize: int = 10
 @export var bombs: int = 10
 @export var dragStrength: float = 2.5
+@export var maxScale:float=2.0
+@export var minScale:float=.9
+@export var scrollSpeed:float=4
 
 # LINE WIDTH
 @export var gridLinesWidth:int = 5
@@ -50,7 +53,6 @@ var lockedGrid:Dictionary
 # MESH GEN
 var color1:Color = Color.DIM_GRAY
 var color3:Color = Color.WEB_GRAY
-
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -107,11 +109,31 @@ func _process(delta: float) -> void:
 		else: # NOT DRAG
 			onTilePressRightClick()
 
+	var zoomAmount = delta * scrollSpeed
+
+	if Input.is_action_just_released("ScrollUp"):
+		var new_scale = Vector2(clamp(self.scale.x + zoomAmount, minScale, maxScale),clamp(self.scale.y + zoomAmount, minScale, maxScale))
+		var scale_diff = (self.scale.length()/new_scale.length()) - 1
+		print(scale_diff)
+		self.scale = new_scale
+		if (new_scale.x != minScale and new_scale.x != maxScale) or (new_scale.y != minScale and new_scale.y != maxScale):
+			self.positionOffset -= screen_size * -scale_diff * zoomAmount/2
+			self.position = originalPos + positionOffset
+
+	elif Input.is_action_just_released("ScrollDown"):
+		var new_scale = Vector2(clamp(self.scale.x - zoomAmount, minScale, maxScale),clamp(self.scale.y - zoomAmount, minScale, maxScale))
+		var scale_diff = (self.scale.length()/new_scale.length()) - 1
+		print(scale_diff)
+		self.scale = new_scale
+		if (new_scale.x != minScale and new_scale.x != maxScale) or (new_scale.y != minScale and new_scale.y != maxScale):
+			self.positionOffset += screen_size * -scale_diff * zoomAmount/2
+			self.position = originalPos + positionOffset
+
 	if isDragging:
 		var movementDifference:Vector2 = dragStart - viewPort.get_mouse_position() 
 		positionOffset += movementDifference * delta * dragStrength
 		self.position = originalPos + positionOffset
-		
+
 func onTilePressLeftClick():
 	var mousePos: Vector2 = viewPort.get_mouse_position()
 	var gridPos = worldPosToGridPos(mousePos)
@@ -159,22 +181,23 @@ func gridWithLabels(inverse:bool = false)->Dictionary:
 			grid_new[pos] = grid[pos]
 	return grid_new
 
-
 func gridPosToWorldPos(gridPos: Vector2i) -> Vector2:
 	var _scale:Vector2 = getScreenSizeScale()
+	_scale = Vector2(_scale.x * self.scale.x, _scale.y * self.scale.y)
 	
 	var x:float = gridPos.x * _scale.x + bufferSize/2.0
 	var y:float = gridPos.y * _scale.y + bufferSize/2.0
 	
 	return Vector2(x,y)
-	
+
 func worldPosToGridPos(worldPos: Vector2) -> Vector2i:
 	var _scale:Vector2 = getScreenSizeScale()
+	_scale = Vector2(_scale.x * self.scale.x, _scale.y * self.scale.y)
 
 	var x:int = int(int(worldPos.x - positionOffset.x) / _scale.x)
 	var y:int = int(int(worldPos.y - positionOffset.y) / _scale.y)
 	
 	return Vector2(x,y)
-	
+
 func getScreenSizeScale() -> Vector2:
 	return Vector2((screen_size.x-bufferSize) / gridXSize,(screen_size.y-bufferSize) / gridYSize)
