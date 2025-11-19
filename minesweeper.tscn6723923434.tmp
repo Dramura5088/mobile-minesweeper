@@ -1,8 +1,6 @@
-[gd_scene load_steps=7 format=3 uid="uid://dn4altfvkrygt"]
+[gd_scene load_steps=5 format=3 uid="uid://dn4altfvkrygt"]
 
 [ext_resource type="Script" uid="uid://copwuke41tg61" path="res://gridManager.gd" id="1_1jydy"]
-[ext_resource type="PackedScene" uid="uid://dao1g460lobac" path="res://tileLabel.tscn" id="2_7nxku"]
-[ext_resource type="PackedScene" uid="uid://cjydu4b1ci8s" path="res://tileMesh.tscn" id="3_xrf8k"]
 [ext_resource type="Texture2D" uid="uid://bljr2n172e5j2" path="res://icon.svg" id="4_nlm7j"]
 [ext_resource type="Script" uid="uid://debea1ahvtpdr" path="res://backToMainMenu.gd" id="5_o5st7"]
 [ext_resource type="PackedScene" uid="uid://cx1njlb0a4ypo" path="res://mainMenu.tscn" id="6_kjjcx"]
@@ -23,5 +21,3 @@ mainMenu = ExtResource("6_kjjcx")
 
 [node name="Game" type="Node2D" parent="."]
 script = ExtResource("1_1jydy")
-tileLabel_Scene = ExtResource("2_7nxku")
-tileMesh_Scene = ExtResource("3_xrf8k")
